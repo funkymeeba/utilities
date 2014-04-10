@@ -2,8 +2,9 @@
 
 STORE_FILE="${HOME}/.passman/store"
 DECRYPT_CMD="gpg2 -dq "$STORE_FILE""
-ENCRYPT_KEY="0x7C358296"
+ENCRYPT_KEY="0x12345678"
 ENCRYPT_CMD="gpg2 -a --encrypt=- -r "$ENCRYPT_KEY""
+COPY_TIMEOUT="30s"
 
 usage() {
 	echo "Usage:" >> /dev/stderr
@@ -84,8 +85,10 @@ copy() {
 	if [ "$entry" ]
 	then
 		output="$(echo "$entry" | sed -r s/'^'"$1"'	'//)"
-		echo "$output" | xclip -selection clipboard -loops 1
-		echo "$output" | xclip -loops 1
+		echo "$output" | xclip -selection clipboard
+		echo "$output" | xclip
+		sleep "$COPY_TIMEOUT" && echo -n | xclip &
+		sleep "$COPY_TIMEOUT" && echo -n | xclip -selection clipboard &
 	else
 		echo "Site '$1' has no entry." >> /dev/stderr
 		exit 4
