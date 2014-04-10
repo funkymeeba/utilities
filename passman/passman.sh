@@ -2,24 +2,27 @@
 
 STORE_FILE="${HOME}/.passman/store"
 DECRYPT_CMD="gpg2 -dq "$STORE_FILE""
-ENCRYPT_KEY="0x12345678"
+ENCRYPT_KEY="0x7C358296"
 ENCRYPT_CMD="gpg2 -a --encrypt=- -r "$ENCRYPT_KEY""
-
-if [ -f "${STORE_FILE}" ]
-then
-	DB="$($DECRYPT_CMD)"
-fi
 
 usage() {
 	echo "Usage:" >> /dev/stderr
 	echo "$0 add <site> [password]" >> /dev/stderr
 	echo "$0 gen <site>" >> /dev/stderr
 	echo "$0 del <site>" >> /dev/stderr
-	echo "$0 show <site>" >> /dev/stderr
-	echo "$0 get <site>" >> /dev/stderr
+	echo "$0 print <site>" >> /dev/stderr
+	echo "$0 copy <site>" >> /dev/stderr
+}
+
+decrypt() {
+	if [ -f "${STORE_FILE}" ]
+	then
+		DB="$($DECRYPT_CMD)"
+	fi
 }
 
 add() {
+	decrypt
 	exists="$(echo "$DB" | grep -G '^'"$1"'	')"
 	if [ "$exists" ]
 	then
@@ -48,6 +51,7 @@ add() {
 
 # Remove password from db.
 del() {
+	decrypt
 	exists="$(echo "$DB" | grep -G '^'"$1"'	')"
 	if [ ! "$exists" ]
 	then
@@ -61,7 +65,8 @@ del() {
 }
 
 # Find password, echo to stdout.
-show() {
+prt() {
+	decrypt
 	entry="$(echo "$DB" | grep -G '^'"$1"'	')"
 	if [ "$entry" ]
 	then
@@ -73,7 +78,8 @@ show() {
 }
 
 # Find password, copy to clipboard.
-get() {
+copy() {
+	decrypt
 	entry="$(echo "$DB" | grep -G '^'"$1"'	')"
 	if [ "$entry" ]
 	then
@@ -99,10 +105,10 @@ gen)
 	add $2;;
 del)
 	del $2;;
-show)
-	show $2;;
-get)
-	get $2;;
+print)
+	prt $2;;
+copy)
+	copy $2;;
 *)
 	usage $0
 	exit 2;;
