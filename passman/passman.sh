@@ -95,25 +95,25 @@ copy() {
 	fi
 }
 
-if [ ! $2 ]
+if [ ! "$2" ]
 then
-	usage $0
+	usage "$0"
 	exit 1
 fi
 
-case $1 in
+case "$1" in
 add)
-	add $2 $3;;
+	add "$2" "$3";;
 gen)
-	add $2;;
+	add "$2";;
 del)
-	del $2;;
+	del "$2";;
 print)
-	prt $2;;
+	prt "$2";;
 copy)
-	copy $2;;
+	copy "$2";;
 *)
-	usage $0
+	usage "$0"
 	exit 2;;
 esac
 
