@@ -8,7 +8,7 @@ COPY_TIMEOUT="30s"
 
 usage() {
 	echo "Usage:" >> /dev/stderr
-	echo "$0 add <site> [password]" >> /dev/stderr
+	echo "$0 add <site>" >> /dev/stderr
 	echo "$0 gen <site>" >> /dev/stderr
 	echo "$0 del <site>" >> /dev/stderr
 	echo "$0 print <site>" >> /dev/stderr
@@ -31,15 +31,18 @@ add() {
 		exit 3
 	fi
 
-	if [ "$2" ]
+	echo -n "Enter new password (leave blank to generate one):"
+	read -s newpwd
+	echo
+	if [ "$newpwd" ]
 	then
-		newline="${1}	${2}"
+		newline="${1}	${newpwd}"
 	else
 		genpwd="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9-_!@#$%^&*()_+{}|:<>?=' | fold -w 20 | grep -e '[^a-zA-Z0-9]' | head -n 1)"
 		newline="${1}	${genpwd}"
 	fi
 
-	# Don't make shit ugly if the file is brand-spankin'-new.
+	# Don't make things ugly if the file is brand-spankin'-new.
 	if [ -z "$DB" ]
 	then
 		DB="$newline"
@@ -85,8 +88,8 @@ copy() {
 	if [ "$entry" ]
 	then
 		output="$(echo "$entry" | sed -r s/'^'"$1"'	'//)"
-		echo "$output" | xclip -selection clipboard
-		echo "$output" | xclip
+		echo -n "$output" | xclip -selection clipboard
+		echo -n "$output" | xclip
 		sleep "$COPY_TIMEOUT" && echo -n | xclip &
 		sleep "$COPY_TIMEOUT" && echo -n | xclip -selection clipboard &
 	else
