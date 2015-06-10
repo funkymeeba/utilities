@@ -1,0 +1,62 @@
+#!/bin/bash
+
+default_in=flac
+default_out=mp3
+default_jobs=8
+default_work_on_dir="$(pwd)"
+
+while [ "$1" ]
+do
+	case "$1" in
+	--in=*) in_ext="${1#*=}";;
+	--out=*) out_ext="${1#*=}";;
+	--jobs=*) max_jobs="${1#*=}";;
+	--dir=*) work_on_dir="${1#*=}";;
+	-i) in_ext="$2"; shift;;
+	-o) out_ext="$2"; shift;;
+	-j) max_jobs="$2"; shift;;
+	-i*) in_ext="${1#-i}";;
+	-o*) out_ext="${1#-o}";;
+	-j*) max_jobs="${1#-j}";;
+	esac
+	shift
+done
+
+in_ext="${in_ext:-$default_in}"
+out_ext="${out_ext:-$default_out}"
+max_jobs="${max_jobs:-$default_jobs}"
+work_on_dir="${work_on_dir:-$default_work_on_dir}"
+
+case "$max_jobs" in
+	*[!0-9]*) echo "Max jobs specification should be an integer." 1>&2; exit 2;;
+	*) echo "Setting max jobs to '$max_jobs'." 1>&2;;
+esac
+
+stop_script() {
+	stopped=y
+}
+
+stopped=
+trap 'stop_script INT' INT
+trap 'stop_script TERM' TERM
+
+while read file
+do
+	test -n "$stopped" && break
+
+	until [ "$(jobs -pr | wc -l)" -lt "$max_jobs" ]
+	do
+		sleep 2
+	done
+
+	(
+		echo "Starting: '$file' -> '${file%.*}.$out_ext'"
+		ffmpeg -i "$work_on_dir/$file" -n -qscale:a 0 "$work_on_dir/${file%.*}.$out_ext" < /dev/null > /dev/null 2>&1 && {
+			echo "Complete: '$file' -> '${file%.*}.$out_ext'"
+		} || {
+			echo "Error: '$file' failed to convert."
+		}
+	) &
+done < <(ls "$work_on_dir" | grep "\.$in_ext\$")
+
+wait
