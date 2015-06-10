@@ -1,8 +1,18 @@
 #!/bin/bash
 
+system="$(uname -s)"
+
 default_in=flac
 default_out=mp3
-default_jobs=8
+if [ "$system" == "Linux" ]
+then
+	default_jobs="$(grep -c '^processor	' /proc/cpuinfo)"
+elif [ "$system" == "FreeBSD" -o "$system" == "Darwin" ]
+then
+	default_jobs="$(sysctl -a | grep '^hw.logicalcpu:' | sed 's/.* //')"
+else
+	default_jobs=2
+fi
 default_work_on_dir="$(pwd)"
 
 while [ "$1" ]
@@ -42,21 +52,24 @@ trap 'stop_script TERM' TERM
 
 while read file
 do
-	test -n "$stopped" && break
-
 	until [ "$(jobs -pr | wc -l)" -lt "$max_jobs" ]
 	do
 		sleep 2
 	done
 
+	test -n "$stopped" && break
 	(
 		echo "Starting: '$file' -> '${file%.*}.$out_ext'"
-		ffmpeg -i "$work_on_dir/$file" -n -qscale:a 0 "$work_on_dir/${file%.*}.$out_ext" < /dev/null > /dev/null 2>&1 && {
-			echo "Complete: '$file' -> '${file%.*}.$out_ext'"
-		} || {
+		ffmpeg -i "$work_on_dir/$file" -n -qscale:a 0 "$work_on_dir/${file%.*}.$out_ext" < /dev/null > /dev/null 2>&1
+		if [ $? -ne 0 ]
+		then
 			echo "Error: '$file' failed to convert."
-		}
+		else
+			echo "Complete: '$file' -> '${file%.*}.$out_ext'"
+		fi
 	) &
+
+	test -n "$stopped" && break
 done < <(ls "$work_on_dir" | grep "\.$in_ext\$")
 
 wait
